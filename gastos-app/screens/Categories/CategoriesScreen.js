@@ -6,48 +6,64 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
+  Modal,
 } from 'react-native';
 import styles from './CategoriesScreen.styles';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Menu, Provider } from 'react-native-paper';
+import { Menu, Divider, Provider, DefaultTheme as PaperTheme } from 'react-native-paper'; // ✅ CORRECTO
 import COLORS from '../../constants/colors';
-import { MD3LightTheme as DefaultTheme } from 'react-native-paper';
 
 const theme = {
-  ...DefaultTheme,
+  ...PaperTheme,
   colors: {
-    ...DefaultTheme.colors,
+    ...PaperTheme.colors,
     surface: '#FFFFFF',
-    onSurface: COLORS.textPrimary,
+    background: '#FFFFFF',
+    text: COLORS.textPrimary,
     primary: COLORS.primary,
+    onSurface: COLORS.textPrimary,
   },
 };
 
+
 export default function CategoriesScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+
   const [newCategory, setNewCategory] = useState('');
   const [categories, setCategories] = useState([
-    'Alimentos',
-    'Transporte',
-    'Entretenimiento',
+    { name: 'Alimentos', color: '#F26419' },
+    { name: 'Transporte', color: '#86BBD8' },
+    { name: 'Entretenimiento', color: '#F6AE2D' },
   ]);
 
   const [editIndex, setEditIndex] = useState(null);
   const [editValue, setEditValue] = useState('');
-  const [visibleMenu, setVisibleMenu] = useState(null); // index del menú abierto
+  const [visibleMenu, setVisibleMenu] = useState(null);
+  const [colorPickerIndex, setColorPickerIndex] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [newCategoryColor, setNewCategoryColor] = useState('#86BBD8');
+
+  const presetColors = ['#F26419', '#86BBD8', '#F6AE2D', '#05C46B', '#5758BB'];
 
   const openMenu = (index) => setVisibleMenu(index);
   const closeMenu = () => setVisibleMenu(null);
+  const openColorPicker = (index) => {
+    closeMenu();
+    setColorPickerIndex(index);
+  };
+  
 
   const handleAdd = () => {
     const trimmed = newCategory.trim();
     if (!trimmed) return;
-    if (categories.includes(trimmed)) {
+    if (categories.some((cat) => cat.name === trimmed)) {
       Alert.alert('Ya existe', 'Esta categoría ya está en la lista.');
       return;
     }
-    setCategories([...categories, trimmed]);
+    setCategories([...categories, { name: trimmed, color: newCategoryColor }]);
     setNewCategory('');
+    setCreating(false);
   };
 
   const handleDelete = (index) => {
@@ -69,16 +85,30 @@ export default function CategoriesScreen({ navigation }) {
   const handleEditSave = (index) => {
     const trimmed = editValue.trim();
     if (!trimmed) return;
-    if (categories.includes(trimmed)) {
+    if (categories.some((cat, i) => i !== index && cat.name === trimmed)) {
       Alert.alert('Ya existe', 'Esta categoría ya está en la lista.');
       return;
     }
     const updated = [...categories];
-    updated[index] = trimmed;
+    updated[index].name = trimmed;
     setCategories(updated);
     setEditIndex(null);
     setEditValue('');
   };
+
+  const selectColor = (color) => {
+    if (colorPickerIndex !== null) {
+      // Estamos editando color de una categoría existente
+      const updated = [...categories];
+      updated[colorPickerIndex].color = color;
+      setCategories(updated);
+      setColorPickerIndex(null);
+    } else {
+      // Estamos creando una nueva categoría
+      setNewCategoryColor(color);
+    }
+  };
+  
 
   return (
     <Provider theme={theme}>
@@ -87,53 +117,75 @@ export default function CategoriesScreen({ navigation }) {
 
         <FlatList
           data={categories}
-          keyExtractor={(item, index) => item + index}
+          keyExtractor={(item, index) => item.name + index}
           renderItem={({ item, index }) => (
             <View style={styles.categoryItem}>
-                {editIndex === index ? (
-                    <>
-                    <TextInput
-                        style={styles.editInput}
-                        value={editValue}
-                        onChangeText={setEditValue}
-                        placeholder="Editar categoría"
-                    />
-                    <TouchableOpacity style={styles.confirmButton} onPress={() => handleEditSave(index)}>
-                        <Ionicons name="checkmark" size={20} color="#fff" />
-                    </TouchableOpacity>
+              {editIndex === index ? (
+                <View style={styles.editRow}>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editValue}
+                    onChangeText={setEditValue}
+                    placeholder="Editar categoría"
+                  />
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={() => handleEditSave(index)}
+                  >
+                    <Ionicons name="checkmark" size={18} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => {
+                      setEditIndex(null);
+                      setEditValue('');
+                    }}
+                  >
+                    <Ionicons name="close" size={18} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.row}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={styles.colorDot(item.color)} />
+                    <Text style={styles.categoryText}>{item.name}</Text>
+                  </View>
 
-                    </>
-                ) : (
-                    <View style={styles.row}>
-                    <Text style={styles.categoryText}>{item}</Text>
-                    <Menu
-                        visible={visibleMenu === index}
-                        onDismiss={closeMenu}
-                        anchor={
-                        <TouchableOpacity onPress={() => openMenu(index)}>
-                            <Ionicons
-                            name="ellipsis-vertical"
-                            size={20}
-                            color={COLORS.textSecondary}
-                            />
-                        </TouchableOpacity>
-                        }
-                    >
-                        <Menu.Item
-                        onPress={() => {
-                            closeMenu();
-                            setEditIndex(index);
-                            setEditValue(item);
-                        }}
-                        title="Editar"
+                  <Menu
+                    visible={visibleMenu === index}
+                    onDismiss={closeMenu}
+                    anchor={
+                      <TouchableOpacity onPress={() => openMenu(index)}>
+                        <Ionicons
+                          name="ellipsis-vertical"
+                          size={20}
+                          color={COLORS.textSecondary}
                         />
-                        <Menu.Item
-                        onPress={() => handleDelete(index)}
-                        title="Eliminar"
-                        />
-                    </Menu>
-                    </View>
-                )}
+                      </TouchableOpacity>
+                    }
+                    contentStyle={{ backgroundColor: '#fff' }}
+                  >
+                    <Menu.Item
+                      onPress={() => {
+                        closeMenu();
+                        setEditIndex(index);
+                        setEditValue(item.name);
+                      }}
+                      title="Editar"
+                    />
+                    <Divider />
+                    <Menu.Item
+                      onPress={() => handleDelete(index)}
+                      title="Eliminar"
+                    />
+                    <Divider />
+                    <Menu.Item
+                      onPress={() => openColorPicker(index)}
+                      title="Cambiar color"
+                    />
+                  </Menu>
+                </View>
+              )}
             </View>
           )}
           ListEmptyComponent={
@@ -141,17 +193,108 @@ export default function CategoriesScreen({ navigation }) {
           }
         />
 
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nueva categoría"
-            value={newCategory}
-            onChangeText={setNewCategory}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Modal de creación */}
+        <Modal
+          transparent
+          animationType="fade"
+          visible={creating}
+          onRequestClose={() => setCreating(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <TouchableOpacity
+                style={styles.modalClose}
+                onPress={() => {
+                  setNewCategory('');
+                  setCreating(false);
+                }}
+              >
+                <Ionicons name="close" size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+
+              <Text style={styles.modalTitle}>Nueva categoría</Text>
+
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Nombre de categoría"
+                placeholderTextColor={COLORS.textSecondary}
+                value={newCategory}
+                onChangeText={setNewCategory}
+              />
+
+              <View style={styles.colorPickerRow}>
+                {presetColors.map((color) => (
+                  <TouchableOpacity
+                    key={color}
+                    style={[
+                      styles.colorCircle,
+                      { backgroundColor: color },
+                      newCategoryColor === color && {
+                        borderColor: COLORS.primary,
+                        borderWidth: 2,
+                      },
+                    ]}
+                    onPress={() => selectColor(color)}
+                  />
+                ))}
+              </View>
+
+              <TouchableOpacity style={styles.createButton} onPress={handleAdd}>
+                <Text style={styles.createButtonText}>Crear</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          transparent
+          animationType="fade"
+          visible={colorPickerIndex !== null}
+          onRequestClose={() => setColorPickerIndex(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <TouchableOpacity
+                style={styles.modalClose}
+                onPress={() => setColorPickerIndex(null)}
+              >
+                <Ionicons name="close" size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+
+              <Text style={styles.modalTitle}>Seleccionar color</Text>
+
+              <View style={styles.colorPickerRow}>
+                {presetColors.map((color) => (
+                  <TouchableOpacity
+                    key={color}
+                    style={[
+                      styles.colorCircle,
+                      { backgroundColor: color },
+                      categories[colorPickerIndex]?.color === color && {
+                        borderColor: COLORS.primary,
+                        borderWidth: 2,
+                      },
+                    ]}
+                    onPress={() => selectColor(color)}
+                  />
+                ))}
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* FAB */}
+        {!creating && (
+          <TouchableOpacity
+          style={[styles.fabBottomRight, { bottom: insets.bottom + 40 }]}
+          onPress={() => {
+            setColorPickerIndex(null);
+            setCreating(true);
+          }}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+        )}
       </SafeAreaView>
     </Provider>
   );

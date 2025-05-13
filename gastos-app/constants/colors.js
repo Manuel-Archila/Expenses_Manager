@@ -9,5 +9,6 @@ const COLORS = {
 
   border: '#D9D9D9',
   inputBackground: '#F2F2F2',
+  success: '#4CAF50',
 };
 export default COLORS;
