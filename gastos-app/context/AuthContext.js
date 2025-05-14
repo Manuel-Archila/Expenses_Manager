@@ -9,34 +9,43 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Cargar token guardado al iniciar
   useEffect(() => {
     const loadStoredAuth = async () => {
-      const storedToken = await AsyncStorage.getItem('token');
-      const storedUser = await AsyncStorage.getItem('user');
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      try {
+        const storedToken = await AsyncStorage.getItem('token');
+        const storedUser = await AsyncStorage.getItem('user');
+
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+          api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+        }
+      } catch (error) {
+        console.error('Error cargando auth:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
+
     loadStoredAuth();
   }, []);
 
   const login = async (email, password) => {
     try {
       const response = await api.post('/login', { email, password });
-      const { access_token, refresh_token, token_type } = response.data;
+      const { access_token, refresh_token, token_type, user: userData } = response.data;
 
-        await AsyncStorage.setItem('token', access_token);
-        await AsyncStorage.setItem('refresh_token', refresh_token);
-        await AsyncStorage.setItem('user', JSON.stringify(user));
+      // Guarda en almacenamiento local
+      await AsyncStorage.setItem('token', access_token);
+      await AsyncStorage.setItem('refresh_token', refresh_token);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
 
-        setToken(access_token);
-        setUser(user);
+      // Actualiza estado global
+      setToken(access_token);
+      setUser(userData);
 
-        api.defaults.headers.common['Authorization'] = `${token_type} ${access_token}`;
+      // Configura Axios para futuras peticiones
+      api.defaults.headers.common['Authorization'] = `${token_type} ${access_token}`;
 
       return true;
     } catch (error) {
@@ -46,11 +55,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
-    delete api.defaults.headers.common['Authorization'];
+    try {
+      await AsyncStorage.multiRemove(['token', 'refresh_token', 'user']);
+      setToken(null);
+      setUser(null);
+      delete api.defaults.headers.common['Authorization'];
+    } catch (error) {
+      console.error('Logout error:', error.message);
+    }
   };
 
   return (

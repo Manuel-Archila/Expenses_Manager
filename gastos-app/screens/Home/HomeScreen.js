@@ -40,7 +40,7 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
         <View style={styles.container}>
-        <Text style={styles.greeting}>Hola, {user?.email || 'Usuario'} 👋</Text>
+        <Text style={styles.greeting}>Hola, {user?.name || 'Usuario'} 👋</Text>
 
         <View style={styles.summary}>
             <Text style={styles.summaryLabel}>Gasto total este mes:</Text>
