@@ -7,7 +7,11 @@ export default StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding:20,
+    paddingTop: 20,
+    paddingHorizontal: 16,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   title: {
     fontSize: 22,
@@ -62,13 +66,13 @@ export default StyleSheet.create({
     borderRadius: BORDER_RADIUS,
     backgroundColor: COLORS.inputBackground,
     marginBottom: 20,
-    zIndex: 100, // importante para que no lo tape otro componente
   },
   dropdownContainer: {
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS,
-    backgroundColor: '#fff',
-    zIndex: 1000, // más alto que el modal del teclado
+    backgroundColor: '#000000',
+    zIndex: 3000,
+    elevation: 10,
   },
   datePickerButton: {
     flexDirection: 'row',
@@ -102,7 +106,7 @@ export default StyleSheet.create({
     borderRadius: BORDER_RADIUS,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: 10,
   },
   saveButtonText: {
     color: '#fff',
