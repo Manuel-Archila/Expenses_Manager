@@ -77,13 +77,6 @@ const AddExpenseScreen = () => {
           return;
         }
 
-        console.log('Frecuencia:', frecuencia);
-        console.log('Recordatorio:', recordatorio);
-        console.log('Fecha de pago:', fechaPago.toISOString().split('T')[0]);
-        console.log('Descripción:', descripcion);
-        console.log('Monto:', parseFloat(monto));
-        console.log('Categoría ID:', selectedCategoriaId);
-
         await crearGastoFijo({
           description: descripcion,
           amount: parseFloat(monto),

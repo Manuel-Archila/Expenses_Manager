@@ -53,4 +53,10 @@ export default StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.primary,
   },
+  noDataText: {
+  textAlign: 'center',
+  marginTop: 20,
+  color: COLORS.textSecondary,
+  fontSize: 16,
+},
 });
